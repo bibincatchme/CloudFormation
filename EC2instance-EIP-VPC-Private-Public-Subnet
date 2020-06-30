@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: AWS CloudFormation template to launch EC2 Instnace in VPC with Public and Private Subnets
+Description: AWS CloudFormation template to launch EC2 Instnace with Elastic IP address in VPC with Public and Private Subnets
 Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
