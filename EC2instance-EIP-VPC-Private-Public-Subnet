@@ -233,14 +233,14 @@ Resources:
     Properties:
       Domain: vpc
   EIPAddressEC2Association:
-    Type: AWS::EC2::EIPAssociation
+    Type: AWS::EC2::EIPAssociation #attach the elastic ip to the instance
     Properties:
       AllocationId: 
-          Fn::GetAtt:
+          Fn::GetAtt:  # Fn::GetAtt is used to get an attribute inside a resource
           - EIPAddressEC2
           - AllocationId
       NetworkInterfaceId:
-        Ref: NetworkInterfacesEC2
+        Ref: NetworkInterfacesEC2 #We use Ref attribute to get the reference of a resource.
   NetworkInterfacesEC2:
     Type: AWS::EC2::NetworkInterface
     Properties:
