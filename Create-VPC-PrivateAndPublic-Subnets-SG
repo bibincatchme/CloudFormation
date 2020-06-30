@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation template to launch VPC in Public and Private Subnets
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: FirstCF-VPC
+  myInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+        Tags:
+        - Key: Name
+          Value: FirstCF-VPC-IG
+  myVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: myVPC
+      InternetGatewayId:
+        Ref: myInternetGateway
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: publicsubnet-a
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: publicsubnet-b      
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: Name
+        Value: privatesubnet-a    
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: myVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+      - Key: Name
+        Value: privatesubnet-b       
+#publicroutetable     
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: publicroutetable-myCF
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: myVPCGatewayAttachment
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: myInternetGateway      
+#NAT GATEWAY
+# A NAT Gateway will be built and used if the user selected Private subnets and a Gateway instead of an EC2 instance. 
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    DependsOn: ElasticIPAddress
+    Properties:
+        AllocationId:
+          Fn::GetAtt:
+          - ElasticIPAddress
+          - AllocationId
+        SubnetId:
+          Ref: PublicSubnetA
+        Tags:
+        - Key: Name
+          Value: natgatewayforCF
+  ElasticIPAddress:
+    Type: AWS::EC2::EIP
+    DependsOn: myVPCGatewayAttachment
+    Properties:
+      Domain: myVPC
+# Here is a private route table:
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: 
+        Ref: myVPC
+      Tags:
+      - Key: Name
+        Value: privateroutetable-myCF        
+  PrivateRoute: # Private route table can access web via NAT (created below)
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+          Ref: PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+          #traffic through the NAT Gateway
+      NatGatewayId:
+          Ref: NATGateway 
+  SubnetAPublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PublicSubnetA
+      RouteTableId:
+        Ref: PublicRouteTable
+  SubnetBPublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PublicSubnetB
+      RouteTableId:
+        Ref: PublicRouteTable  
+  SubnetAPrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PrivateSubnetA
+      RouteTableId:
+        Ref: PrivateRouteTable  
+  SubnetBPrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: PrivateSubnetB
+      RouteTableId:
+        Ref: PrivateRouteTable
+#SecurtiyGroupFrom the VPC and Ec2 Instnace
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: myVPC
+    Properties:
+      GroupName: Internet Group
+      GroupDescription: SSH traffic in, all traffic out.
+      VpcId: 
+        Ref: myVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0  
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
