@@ -1,0 +1,17 @@
+        wordpress_config: 
+          files:
+            /tmp/wordpress_config.sh:
+              content:
+                Fn::Join:
+                  - ""
+                  - - 'sed -i "s/database_name_here/'
+                    - Ref: DBUserName
+                    - '/g" /var/www/html/wp-config.php'   
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            wordpress_config:
+              command: ./wordpress_config.sh
+              cwd: /tmp
+              ignoreErrors: true
