@@ -1,0 +1,83 @@
+#Ec2 instance with public subnet        
+  Ec2Instance:
+    Type: 'AWS::EC2::Instance'
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          wordpress_install:
+            - install_Webserver
+            - wordpress_config
+        install_webserver:
+          packages:
+            yum:
+              awslogs: []
+              httpd: []
+              php: []
+              php-mysqli: []
+              curl: []
+              tar: []
+            sources:
+              /var/www/html: 'https://wordpress.org/latest.tar.gz'
+          files:
+            /tmp/create_site_conf.sh:
+              content: |
+                #!/bin/bash -xe
+                if [ ! -f /etc/httpd/conf.d/wp.conf ]; then
+                  touch /etc/httpd/conf.d/wp.conf
+                  echo 'ServerName https://127.0.0.1' >> /etc/httpd/conf.d/wp.conf
+                  echo 'DocumentRoot /var/www/wordpress/' >> /etc/httpd/conf.d/wp.conf
+                  echo 'ServerSignature off' >> /etc/httpd/conf.d/wp.conf
+                  echo 'ServerTokens Prod' >> /etc/httpd/conf.d/wp.conf
+                  echo 'Header unset Server' >> /etc/httpd/conf.d/wp.conf
+                  echo '<Directory /var/www/wordpress/blog>' >> /etc/httpd/conf.d/wp.conf
+                  echo '  Options Indexes FollowSymLinks' >> /etc/httpd/conf.d/wp.conf
+                  echo '  AllowOverride All' >> /etc/httpd/conf.d/wp.conf
+                  echo '  Require all granted' >> /etc/httpd/conf.d/wp.conf
+                  echo '</Directory>' >> /etc/httpd/conf.d/wp.conf
+                  echo 'expose_php = Off' >> /etc/php-7.3.d/70-disable_poweredby.ini
+                fi
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            create_site_conf:
+              command: ./create_site_conf.sh
+              cwd: /tmp
+              ignoreErrors: false
+        wordpress_config: 
+          files:
+            /tmp/wordpress_config.sh:
+              content:
+                !Join [
+                  "",[
+                  "#!/bin/bash -xe\n",
+                  "cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php\n",
+                  "sed -i \"s/'database_name_here'/'", Ref: DBUserName , "'/g\" wp-config.php\n",
+                  ]
+                ]   
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            wordpress_config:
+              command: ./wordpress_config.sh
+              cwd: /tmp
+              ignoreErrors: true
+    Properties:
+      InstanceType:
+        Ref: InstanceType
+      ImageId: !FindInMap
+        - RegionMap
+        - Ref: AWS::Region
+        - HVMR
+      KeyName:
+        Ref: KeyName
+      NetworkInterfaces:
+        - NetworkInterfaceId:
+            Ref: NetworkInterfacesEC2
+          DeviceIndex: 0
+      Tags:
+        - Key: Name
+          Value: My EC2 Instance
+        - Key: Type
+          Value: Worker Instance        
