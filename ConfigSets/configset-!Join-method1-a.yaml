@@ -1,0 +1,22 @@
+        wordpress_config: 
+          files:
+            /tmp/wordpress_config.sh:
+              content:
+                !Join [
+                  "",[
+                  "#!/bin/bash -xe\n",
+                  "cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php\n",
+                  "sed -i s/database_name_here/", Ref: DBName, "/g /var/www/html/wp-config.php\n",
+                  "sed -i s/username_here/", Ref: DBUserName, "/g /var/www/html/wp-config.php\n",
+                  "sed -i s/password_here/", Ref: DBUserPass, "/g /var/www/html/wp-config.php\n",
+                  "sed -i \"s/'localhost'/'", !GetAtt MyRDDBServer.Endpoint.Address,  "/g /var/www/html/wp-config.php\n",
+                  ]
+                ]   
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            wordpress_config:
+              command: ./wordpress_config.sh
+              cwd: /tmp
+              ignoreErrors: true
