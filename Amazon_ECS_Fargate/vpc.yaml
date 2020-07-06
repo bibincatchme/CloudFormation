@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation template to Launch application Using ECS  
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.0.0/20
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.32.0/20
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true      
+  myInternetGateway:
+    Type: AWS::EC2::InternetGateway      
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref myInternetGateway
+      VpcId: !Ref myVPC    
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myVPC      
+
+  RouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref RouteTable    
+  RouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref RouteTable          
+  InternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:  !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref myInternetGateway 
+
+Outputs:
+  VPC:
+    Description: VPC
+    Value: !Ref myVPC
+    Export: 
+      Name: VPC
+  Subnet1:
+    Description: Subnet 1 on AZ1
+    Value: !Ref Subnet1
+    Export: 
+      Name: Subnet1
+  Subnet2:
+    Description: Subnet 2 on AZ1
+    Value: !Ref Subnet2
+    Export: 
+      Name: Subnet2    
