@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create EC2 instance
+
+
+Parameters: 
+  EnvironmentValue: 
+    AllowedValues:
+      - Dev
+      - QA
+      - Prod
+    Default: Dev
+    Description: What environment is this?
+    Type: String
+    
+Mappings:
+  EnvMap: #logical id / name
+    Dev:
+      instanceType: t2.micro
+      name: Dev
+    QA:
+      instanceType: t2.medium
+      name: QA
+    Prod:
+      instanceType: t2.micro
+      name: Prod    
+    
+Resources:
+  MyEC2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: ami-0947d2ba12ee1ff75
+      InstanceType: !FindInMap [EnvMap, !Ref EnvironmentValue, instanceType]
+      Tags:
+        - Key: Name
+          Value: !FindInMap [EnvMap, !Ref EnvironmentValue, instanceType]
+
+          
+Outputs:
+  InstanceName:
+      Value: !Ref MyEC2Instance
