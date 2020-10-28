@@ -1,0 +1,27 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Simple S3 Bucket 
+
+Parameters:
+
+  s3BucketName:
+    Description: The name of the S3 Bucket to create
+    Type: String
+    MinLength: 3
+    MaxLength: 10
+    AllowedPattern: "[a-z]+"
+
+
+
+Resources:
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref s3BucketName
+
+Outputs:
+
+  S3Bucket:
+    Value: !Ref S3Bucket
+    Description: S3 Bucket for object storage   
